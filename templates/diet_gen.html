@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Diet & Nutrition Generator - FitCoach AI{% endblock %}
+{% block page_title %}AI Diet & Nutrition Generator{% endblock %}
+{% block page_subtitle %}Formulate customized meal plans with exact macros, calories, and grocery checklists{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Generator Configuration Form -->
+    <div class="col-12 col-lg-5">
+        <div class="glass-panel p-4">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom border-secondary border-opacity-50">
+                <i class="fa-solid fa-utensils text-gradient-fire"></i>
+                <h5 class="mb-0 text-white">Dietary Parameters</h5>
+            </div>
+
+            <form id="diet-gen-form">
+                <!-- Fitness Goal -->
+                <div class="mb-3">
+                    <label class="fit-label">Nutritional Goal</label>
+                    <select id="diet-goal" class="fit-select">
+                        <option value="muscle_gain" {% if profile and profile.fitness_goal == 'muscle_gain' %}selected{% endif %}>Muscle Gain (Clean Surplus)</option>
+                        <option value="fat_loss" {% if profile and profile.fitness_goal == 'fat_loss' %}selected{% endif %}>Fat Loss / Shred (Caloric Deficit)</option>
+                        <option value="maintenance" {% if profile and profile.fitness_goal == 'maintenance' %}selected{% endif %}>Body Recomposition & Maintenance</option>
+                        <option value="aggressive_gain">Aggressive Bulking (+500 kcal)</option>
+                    </select>
+                </div>
+
+                <!-- Dietary Preference -->
+                <div class="mb-3">
+                    <label class="fit-label">Dietary Preference / Style</label>
+                    <select id="diet-type" class="fit-select">
+                        <option value="high_protein" selected>High-Protein Athlete (Omnivore)</option>
+                        <option value="standard">Standard Balanced Diet</option>
+                        <option value="vegetarian">Vegetarian (Lacto-Ovo)</option>
+                        <option value="vegan">Vegan (100% Plant-Based)</option>
+                        <option value="keto">Keto (Low-Carb High-Fat)</option>
+                        <option value="mediterranean">Mediterranean Diet</option>
+                    </select>
+                </div>
+
+                <!-- Daily Calorie Target -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <label class="fit-label">Daily Target Calories (kcal)</label>
+                        <small class="text-white-50">Profile TDEE: {{ tdee }} kcal</small>
+                    </div>
+                    <input type="number" id="diet-calories" class="fit-input" value="{{ recommended_cals }}" min="1000" max="6000" required>
+                </div>
+
+                <!-- Meals per day -->
+                <div class="mb-3">
+                    <label class="fit-label">Daily Meal Frequency</label>
+                    <select id="diet-meals" class="fit-select">
+                        <option value="3">3 Meals / Day</option>
+                        <option value="4" selected>4 Meals / Day (3 Meals + 1 Snack)</option>
+                        <option value="5">5 Meals / Day (3 Meals + 2 Snacks)</option>
+                    </select>
+                </div>
+
+                <!-- Allergies / Food Exclusions -->
+                <div class="mb-4">
+                    <label class="fit-label">Allergies / Disliked Foods (Optional)</label>
+                    <textarea id="diet-allergies" class="fit-textarea" rows="2" placeholder="e.g. Lactose intolerant, no seafood, peanut allergy."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-fit-fire w-100 py-3" id="generate-diet-btn">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Formulate Complete Meal Plan</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generated Plan Output Container -->
+    <div class="col-12 col-lg-7">
+        <!-- Loading State Skeleton -->
+        <div id="diet-loading" class="glass-panel p-5 text-center d-none">
+            <div class="spinner-border text-warning mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+            <h5 class="text-white">AI Nutritionist is crafting your meal plan...</h5>
+            <p class="text-white-50 small">Balancing amino acid profiles, micronutrients, and daily caloric targets</p>
+        </div>
+
+        <!-- Result Container -->
+        <div id="diet-result-container" class="plan-result-box d-none" style="border-color: rgba(255, 107, 53, 0.4); box-shadow: var(--shadow-fire);">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary border-opacity-50 gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded bg-warning bg-opacity-25 text-warning">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 text-white">Your Daily Nutrition Blueprint</h5>
+                        <small class="text-warning fw-semibold">Formulated by FitCoach AI</small>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-fit-outline" onclick="printPlan('diet-plan-content')">
+                        <i class="fa-solid fa-print me-1"></i> Print / PDF
+                    </button>
+                    <button class="btn btn-sm btn-fit-fire" id="save-diet-btn">
+                        <i class="fa-solid fa-bookmark me-1"></i> Save to Library
+                    </button>
+                </div>
+            </div>
+
+            <div id="diet-plan-content" class="bubble-content p-0" style="background: transparent; border: none;">
+                <!-- Generated Markdown rendered here -->
+            </div>
+        </div>
+
+        <!-- Default Placeholder when no plan generated yet -->
+        <div id="diet-placeholder" class="glass-panel p-5 text-center">
+            <div class="p-3 rounded-circle bg-dark d-inline-flex mb-3 border border-secondary border-opacity-50">
+                <i class="fa-solid fa-utensils fa-3x text-gradient-fire"></i>
+            </div>
+            <h4 class="text-white mb-2">Ready to Build Your Nutrition Strategy</h4>
+            <p class="text-white-50 mx-auto" style="max-width: 460px; font-size: 0.95rem; line-height: 1.6;">
+                Specify your calorie goals and dietary preferences on the left and click <strong class="text-white">Formulate Complete Meal Plan</strong> to receive a detailed meal schedule with grocery lists and macro breakdowns.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/generator.js') }}"></script>
+<script>
+    document.getElementById("diet-gen-form").addEventListener("submit", () => {
+        const ph = document.getElementById("diet-placeholder");
+        if (ph) ph.classList.add("d-none");
+    });
+</script>
+{% endblock %}

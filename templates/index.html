@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FitCoach AI{% endblock %}
+{% block page_title %}Welcome Back, {{ profile.name if profile else 'Athlete' }} 👋{% endblock %}
+{% block page_subtitle %}Your personalized fitness & nutrition command center{% endblock %}
+
+{% block content %}
+<!-- Metric Cards Row -->
+<div class="row g-3 mb-4">
+    <!-- Target Calories -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="glass-card stat-card">
+            <div class="stat-label">Daily Target Calories</div>
+            <div class="stat-value text-gradient-emerald">
+                {{ macros.target_calories }} <span class="unit">kcal</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-2">
+                <span class="badge-pill-neon">{{ profile.fitness_goal.replace('_', ' ').title() if profile else 'Fitness' }}</span>
+                <small class="text-white-50">TDEE: {{ tdee }} kcal</small>
+            </div>
+            <i class="fa-solid fa-fire stat-icon text-success"></i>
+        </div>
+    </div>
+
+    <!-- Daily Protein -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="glass-card stat-card cyan">
+            <div class="stat-label">Target Protein</div>
+            <div class="stat-value" style="color: var(--accent-cyan);">
+                {{ macros.protein_g }} <span class="unit">grams</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-2">
+                <span class="badge-pill-cyan">{{ macros.protein_pct }}% of calories</span>
+                <small class="text-white-50">~{{ (macros.protein_g / profile.weight) | round(1) if profile else 2.0 }}g/kg</small>
+            </div>
+            <i class="fa-solid fa-drumstick-bite stat-icon text-info"></i>
+        </div>
+    </div>
+
+    <!-- Current Weight & BMI -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="glass-card stat-card fire">
+            <div class="stat-label">Bodyweight & BMI</div>
+            <div class="stat-value text-gradient-fire">
+                {{ profile.weight if profile else 70 }} <span class="unit">kg</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-2">
+                <span class="badge-pill-fire">BMI: {{ bmi.bmi }}</span>
+                <small class="{{ bmi.badge_class }} fw-semibold">{{ bmi.category }}</small>
+            </div>
+            <i class="fa-solid fa-weight-scale stat-icon text-danger"></i>
+        </div>
+    </div>
+
+    <!-- Basal Metabolic Rate (BMR) -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="glass-card stat-card purple">
+            <div class="stat-label">Basal Metabolism (BMR)</div>
+            <div class="stat-value" style="color: #b5179e;">
+                {{ bmr }} <span class="unit">kcal</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-2">
+                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-50" style="font-size: 0.75rem;">Mifflin-St Jeor</span>
+                <small class="text-white-50">At complete rest</small>
+            </div>
+            <i class="fa-solid fa-heart-pulse stat-icon text-secondary"></i>
+        </div>
+    </div>
+</div>
+
+<!-- AI Quick Prompt Hub -->
+<div class="glass-panel p-4 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <div class="p-2 rounded bg-success bg-opacity-25 text-success">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 text-white">Ask FitCoach AI Anything</h5>
+                <small class="text-white-50">Get instantaneous, science-backed workout and nutrition advice</small>
+            </div>
+        </div>
+        <a href="{{ url_for('chat_page') }}" class="btn btn-sm btn-fit-outline mt-2 mt-sm-0">
+            Open Full Chat <i class="fa-solid fa-arrow-right ms-1"></i>
+        </a>
+    </div>
+
+    <form action="{{ url_for('chat_page') }}" method="GET" class="d-flex gap-2 mb-3">
+        <input type="text" name="q" class="fit-input" placeholder="e.g., What should I eat 1 hour before heavy squatting?" required>
+        <button type="submit" class="btn btn-fit-primary flex-shrink-0">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
+    </form>
+
+    <div class="d-flex flex-wrap gap-2">
+        <span class="text-white-50 small align-self-center me-1">Popular prompts:</span>
+        <a href="{{ url_for('chat_page') }}?q=How%20much%20protein%20do%20I%20need%20daily?" class="prompt-chip">
+            <i class="fa-solid fa-egg text-warning"></i> Daily Protein Needs
+        </a>
+        <a href="{{ url_for('chat_page') }}?q=Should%20I%20do%20cardio%20before%20or%20after%20lifting%20weights?" class="prompt-chip">
+            <i class="fa-solid fa-person-running text-info"></i> Cardio Before or After Weights?
+        </a>
+        <a href="{{ url_for('chat_page') }}?q=How%20do%20I%20properly%20take%20creatine%20monohydrate?" class="prompt-chip">
+            <i class="fa-solid fa-bolt text-success"></i> Creatine Timing & Dose
+        </a>
+        <a href="{{ url_for('chat_page') }}?q=What%20are%20the%20best%20methods%20for%20progressive%20overload?" class="prompt-chip">
+            <i class="fa-solid fa-arrow-trend-up text-danger"></i> Progressive Overload Guide
+        </a>
+    </div>
+</div>
+
+<!-- Main Action Grid -->
+<div class="row g-4 mb-4">
+    <!-- Left Column: Generator Launchers -->
+    <div class="col-12 col-lg-7">
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <div class="glass-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="p-2 rounded bg-success bg-opacity-25 text-success">
+                                <i class="fa-solid fa-dumbbell fa-lg"></i>
+                            </div>
+                            <h5 class="mb-0 text-white">Workout Generator</h5>
+                        </div>
+                        <p class="text-white-50 mb-4" style="font-size: 0.92rem; line-height: 1.6;">
+                            Build a scientifically structured multi-day routine tailored to your equipment, experience, and fitness goals.
+                        </p>
+                    </div>
+                    <a href="{{ url_for('workout_gen_page') }}" class="btn btn-fit-primary w-100">
+                        <span>Generate Routine</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <div class="glass-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="p-2 rounded bg-warning bg-opacity-25 text-warning">
+                                <i class="fa-solid fa-utensils fa-lg"></i>
+                            </div>
+                            <h5 class="mb-0 text-white">Diet Plan Generator</h5>
+                        </div>
+                        <p class="text-white-50 mb-4" style="font-size: 0.92rem; line-height: 1.6;">
+                            Formulate a precise meal-by-meal nutrition strategy with custom calories, macro splits, and grocery list.
+                        </p>
+                    </div>
+                    <a href="{{ url_for('diet_gen_page') }}" class="btn btn-fit-fire w-100">
+                        <span>Formulate Meals</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <div class="glass-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="p-2 rounded bg-info bg-opacity-25 text-info">
+                                <i class="fa-solid fa-calculator fa-lg"></i>
+                            </div>
+                            <h5 class="mb-0 text-white">Fitness Calculators</h5>
+                        </div>
+                        <p class="text-white-50 mb-4" style="font-size: 0.92rem; line-height: 1.6;">
+                            Calculate 1-Rep Max, daily hydration targets, and heart rate training zones with scientific precision.
+                        </p>
+                    </div>
+                    <a href="{{ url_for('calculators_page') }}" class="btn btn-fit-outline w-100">
+                        <span>Open Calculators</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <div class="glass-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="p-2 rounded bg-primary bg-opacity-25 text-primary">
+                                <i class="fa-solid fa-chart-line fa-lg"></i>
+                            </div>
+                            <h5 class="mb-0 text-white">Progress Tracker</h5>
+                        </div>
+                        <p class="text-white-50 mb-4" style="font-size: 0.92rem; line-height: 1.6;">
+                            Log your body weight, body fat %, and body measurements to visualize transformation curves over time.
+                        </p>
+                    </div>
+                    <a href="{{ url_for('progress_page') }}" class="btn btn-fit-outline w-100">
+                        <span>View Progress</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Recent Plans & Status -->
+    <div class="col-12 col-lg-5">
+        <div class="glass-panel p-4 h-100 d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-white"><i class="fa-solid fa-bookmark me-2 text-gradient-emerald"></i>Saved Library</h5>
+                <a href="{{ url_for('saved_plans_page') }}" class="text-white-50 small text-decoration-none fw-semibold">View All</a>
+            </div>
+
+            {% if recent_workouts or recent_diets %}
+                <div class="d-flex flex-column gap-2 mb-3 flex-grow-1">
+                    {% for w in recent_workouts %}
+                    <div class="p-3 rounded bg-dark border border-secondary border-opacity-50 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-2 rounded bg-success bg-opacity-25 text-success">
+                                <i class="fa-solid fa-dumbbell"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-white small text-truncate" style="max-width: 200px;">{{ w.title }}</div>
+                                <small class="text-white-50">{{ w.days_per_week }} Days • {{ w.goal }}</small>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('saved_plans_page') }}" class="btn btn-sm btn-fit-outline py-1 px-2">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+
+                    {% for d in recent_diets %}
+                    <div class="p-3 rounded bg-dark border border-secondary border-opacity-50 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-2 rounded bg-warning bg-opacity-25 text-warning">
+                                <i class="fa-solid fa-utensils"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-white small text-truncate" style="max-width: 200px;">{{ d.title }}</div>
+                                <small class="text-white-50">{{ d.target_calories }} kcal • {{ d.diet_type }}</small>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('saved_plans_page') }}" class="btn btn-sm btn-fit-outline py-1 px-2">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-white-50 flex-grow-1 d-flex flex-column justify-content-center">
+                    <i class="fa-solid fa-folder-open fa-3x mb-3 opacity-50 text-white"></i>
+                    <p class="mb-2 text-white fw-semibold">No saved plans yet.</p>
+                    <small class="text-white-50">Generate your first customized workout or diet plan!</small>
+                </div>
+            {% endif %}
+
+            <!-- Daily Motivation Pill -->
+            <div class="p-3 rounded" style="background: rgba(0, 245, 160, 0.08); border: 1px solid rgba(0, 245, 160, 0.35);">
+                <div class="d-flex gap-2 align-items-start">
+                    <i class="fa-solid fa-quote-left text-gradient-emerald mt-1"></i>
+                    <div>
+                        <div class="fw-bold text-white" style="font-size: 0.95rem;">"Discipline is choosing between what you want now and what you want most."</div>
+                        <div class="text-success fw-semibold" style="font-size: 0.8rem;">— FitCoach AI Principle</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

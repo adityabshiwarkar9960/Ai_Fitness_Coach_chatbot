@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Workout Routine Generator - FitCoach AI{% endblock %}
+{% block page_title %}AI Workout Routine Generator{% endblock %}
+{% block page_subtitle %}Design custom multi-day training splits backed by progressive overload science{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Generator Configuration Form -->
+    <div class="col-12 col-lg-5">
+        <div class="glass-panel p-4">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom border-secondary border-opacity-50">
+                <i class="fa-solid fa-sliders text-gradient-emerald"></i>
+                <h5 class="mb-0 text-white">Training Parameters</h5>
+            </div>
+
+            <form id="workout-gen-form">
+                <!-- Fitness Goal -->
+                <div class="mb-3">
+                    <label class="fit-label">Primary Fitness Goal</label>
+                    <select id="workout-goal" class="fit-select">
+                        <option value="muscle_gain" {% if profile and profile.fitness_goal == 'muscle_gain' %}selected{% endif %}>Muscle Hypertrophy (Mass Building)</option>
+                        <option value="fat_loss" {% if profile and profile.fitness_goal == 'fat_loss' %}selected{% endif %}>Fat Loss & Body Recomposition</option>
+                        <option value="strength" {% if profile and profile.fitness_goal == 'strength' %}selected{% endif %}>Maximum Strength (Powerlifting)</option>
+                        <option value="endurance" {% if profile and profile.fitness_goal == 'endurance' %}selected{% endif %}>Muscular Endurance & Conditioning</option>
+                        <option value="calisthenics">Bodyweight Calisthenics & Gymnastics</option>
+                    </select>
+                </div>
+
+                <!-- Experience Level -->
+                <div class="mb-3">
+                    <label class="fit-label">Experience Level</label>
+                    <select id="workout-level" class="fit-select">
+                        <option value="beginner">Beginner (0 to 1 year training)</option>
+                        <option value="intermediate" selected>Intermediate (1 to 3 years training)</option>
+                        <option value="advanced">Advanced (3+ years serious lifting)</option>
+                    </select>
+                </div>
+
+                <!-- Days per week -->
+                <div class="mb-3">
+                    <label class="fit-label">Training Days Per Week</label>
+                    <select id="workout-days" class="fit-select">
+                        <option value="3">3 Days / Week (Full Body Split)</option>
+                        <option value="4" selected>4 Days / Week (Upper / Lower Split)</option>
+                        <option value="5">5 Days / Week (PPL + Upper/Lower)</option>
+                        <option value="6">6 Days / Week (Push / Pull / Legs x2)</option>
+                    </select>
+                </div>
+
+                <!-- Available Equipment -->
+                <div class="mb-3">
+                    <label class="fit-label">Available Equipment</label>
+                    <select id="workout-equipment" class="fit-select">
+                        <option value="Full Gym (Barbell, Dumbbells, Cables, Machines)">Full Commercial Gym (Barbells, Cables, Machines)</option>
+                        <option value="Home Gym (Dumbbells and Adjustable Bench)">Home Gym (Dumbbells + Bench only)</option>
+                        <option value="Barbell, Squat Rack, and Pull-up Bar">Barbell, Squat Rack, and Pull-up Bar</option>
+                        <option value="Bodyweight and Resistance Bands Only">Bodyweight & Resistance Bands Only</option>
+                    </select>
+                </div>
+
+                <!-- Injuries / Exclusions -->
+                <div class="mb-4">
+                    <label class="fit-label">Injuries / Limitations / Focus Areas (Optional)</label>
+                    <textarea id="workout-injury" class="fit-textarea" rows="2" placeholder="e.g. Mild shoulder impingement (avoid behind-neck press), extra emphasis on side delts and upper chest."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-fit-primary w-100 py-3" id="generate-workout-btn">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Generate Structured Workout Plan</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generated Plan Output Container -->
+    <div class="col-12 col-lg-7">
+        <!-- Loading State Skeleton -->
+        <div id="workout-loading" class="glass-panel p-5 text-center d-none">
+            <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+            <h5 class="text-white">AI Coach is designing your routine...</h5>
+            <p class="text-white-50 small">Calculating volume, rest intervals, and exercise selection based on biomechanics</p>
+        </div>
+
+        <!-- Result Container -->
+        <div id="workout-result-container" class="plan-result-box d-none">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary border-opacity-50 gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded bg-success bg-opacity-25 text-success">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 text-white">Your Tailored Workout Program</h5>
+                        <small class="text-success fw-semibold">Generated by FitCoach AI</small>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-fit-outline" onclick="printPlan('workout-plan-content')">
+                        <i class="fa-solid fa-print me-1"></i> Print / PDF
+                    </button>
+                    <button class="btn btn-sm btn-fit-primary" id="save-workout-btn">
+                        <i class="fa-solid fa-bookmark me-1"></i> Save to Library
+                    </button>
+                </div>
+            </div>
+
+            <div id="workout-plan-content" class="bubble-content p-0" style="background: transparent; border: none;">
+                <!-- Generated Markdown rendered here -->
+            </div>
+        </div>
+
+        <!-- Default Placeholder when no plan generated yet -->
+        <div id="workout-placeholder" class="glass-panel p-5 text-center">
+            <div class="p-3 rounded-circle bg-dark d-inline-flex mb-3 border border-secondary border-opacity-50">
+                <i class="fa-solid fa-dumbbell fa-3x text-gradient-emerald"></i>
+            </div>
+            <h4 class="text-white mb-2">Ready to Build Your Program</h4>
+            <p class="text-white-50 mx-auto" style="max-width: 460px; font-size: 0.95rem; line-height: 1.6;">
+                Configure your training split on the left and click <strong class="text-white">Generate Structured Workout Plan</strong> to receive an exercise schedule with set/rep cues and progressive overload guidelines.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/generator.js') }}"></script>
+<script>
+    // Hide placeholder when result loads
+    document.getElementById("workout-gen-form").addEventListener("submit", () => {
+        const ph = document.getElementById("workout-placeholder");
+        if (ph) ph.classList.add("d-none");
+    });
+</script>
+{% endblock %}

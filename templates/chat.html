@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}AI Coach Chat - FitCoach AI{% endblock %}
+{% block page_title %}AI Fitness & Nutrition Coach{% endblock %}
+{% block page_subtitle %}Ask training questions, form checks, recovery protocols, and diet advice{% endblock %}
+
+{% block content %}
+<div class="chat-container glass-panel">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <div class="d-flex align-items-center gap-3">
+            <div class="position-relative">
+                <div class="bubble-avatar" style="background: var(--gradient-emerald); color: #040914;">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-dark rounded-circle" style="width: 10px; height: 10px;"></span>
+            </div>
+            <div>
+                <h6 class="mb-0 fw-bold text-white">FitCoach AI</h6>
+                <small class="text-white-50" style="font-size: 0.75rem;">
+                    {% if has_api_key %}
+                        <span class="text-success"><i class="fa-solid fa-sparkles me-1"></i>Gemini Neural Engine Active</span>
+                    {% else %}
+                        <span class="text-info"><i class="fa-solid fa-brain me-1"></i>Expert Fitness Engine Active</span>
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Text to Speech Audio Toggle -->
+            <button class="btn btn-sm btn-fit-outline" id="tts-toggle" title="Toggle AI voice narration">
+                <i class="fa-solid fa-volume-xmark"></i> <span class="d-none d-sm-inline">Audio Off</span>
+            </button>
+            <!-- Clear Chat -->
+            <button class="btn btn-sm btn-fit-outline text-danger" id="clear-chat-btn" title="Clear conversation history">
+                <i class="fa-solid fa-trash-can"></i> <span class="d-none d-sm-inline">Clear</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Chat Message Stream -->
+    <div class="chat-messages" id="chat-messages">
+        <!-- Initial Welcome Message -->
+        <div class="message-bubble assistant">
+            <div class="bubble-avatar">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <div class="bubble-content">
+                <h4 class="m-0 mb-2 text-gradient-emerald">👋 Welcome to FitCoach AI!</h4>
+                <p class="mb-2 text-white">I am your certified Strength & Conditioning Specialist and Sports Nutritionist. I can help you with:</p>
+                <ul class="mb-2 text-white-50" style="font-size: 0.95rem;">
+                    <li><strong class="text-white">Workout Splits:</strong> Optimal training routines based on your schedule and equipment.</li>
+                    <li><strong class="text-white">Nutritional Science:</strong> Macronutrient splits, protein timing, and calorie cycling.</li>
+                    <li><strong class="text-white">Supplement Strategies:</strong> Evidence-based guidance on Creatine, Whey, Caffeine, and Electrolytes.</li>
+                    <li><strong class="text-white">Injury & Recovery:</strong> Deload weeks, stretching protocols, and joint longevity.</li>
+                </ul>
+                <p class="mb-0 text-white-50 fw-semibold">Type a question below or pick from the popular topics to get started!</p>
+            </div>
+        </div>
+
+        <!-- Render History from Server if any -->
+        {% for msg in chat_history %}
+            <div class="message-bubble {{ msg.role }}">
+                <div class="bubble-avatar">
+                    {% if msg.role == 'user' %}
+                        <i class="fa-solid fa-user"></i>
+                    {% else %}
+                        <i class="fa-solid fa-robot"></i>
+                    {% endif %}
+                </div>
+                <div class="bubble-content" data-raw-content="{{ msg.content }}">
+                    <!-- Content will be rendered by JS marked on load -->
+                    {{ msg.content }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Quick Chips Strip -->
+    <div class="px-4 py-2 border-top border-secondary border-opacity-50 bg-dark bg-opacity-75 overflow-x-auto text-nowrap d-flex gap-2">
+        <button type="button" class="prompt-chip" data-prompt="What should I eat 2 hours before a heavy workout?">
+            <i class="fa-solid fa-apple-whole text-warning"></i> Pre-workout Meal
+        </button>
+        <button type="button" class="prompt-chip" data-prompt="How much protein should I eat per day for muscle growth?">
+            <i class="fa-solid fa-drumstick-bite text-info"></i> Optimal Protein Intake
+        </button>
+        <button type="button" class="prompt-chip" data-prompt="Should I do cardio before or after lifting weights?">
+            <i class="fa-solid fa-person-running text-success"></i> Cardio vs Weights Timing
+        </button>
+        <button type="button" class="prompt-chip" data-prompt="What is the best way to apply progressive overload on bench press?">
+            <i class="fa-solid fa-dumbbell text-danger"></i> Progressive Overload
+        </button>
+        <button type="button" class="prompt-chip" data-prompt="Explain how creatine monohydrate works and the correct dosage.">
+            <i class="fa-solid fa-bolt text-warning"></i> Creatine Monohydrate
+        </button>
+    </div>
+
+    <!-- Input Form -->
+    <div class="chat-input-wrapper">
+        <form id="chat-form" class="chat-form">
+            <input type="text" id="user-input" class="fit-input" placeholder="Ask anything about workouts, diet, macros, or recovery..." autocomplete="off" required>
+            <button type="submit" class="btn btn-fit-primary flex-shrink-0" id="send-btn">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span class="d-none d-sm-inline">Send</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script>
+    // Check if query string has ?q= from dashboard launcher
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialQuery = urlParams.get('q');
+        if (initialQuery) {
+            const input = document.getElementById("user-input");
+            if (input) {
+                input.value = initialQuery;
+                const form = document.getElementById("chat-form");
+                if (form) form.dispatchEvent(new Event('submit'));
+            }
+        }
+
+        // Format any pre-existing server history messages with markdown
+        document.querySelectorAll('.message-bubble.assistant .bubble-content').forEach(el => {
+            const raw = el.getAttribute('data-raw-content');
+            if (raw && window.marked) {
+                el.innerHTML = marked.parse(raw);
+            }
+        });
+    });
+</script>
+{% endblock %}

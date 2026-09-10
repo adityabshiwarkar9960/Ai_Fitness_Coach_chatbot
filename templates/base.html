@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FitCoach AI - Smart Fitness & Nutrition Assistant{% endblock %}</title>
+
+    <!-- Meta SEO -->
+    <meta name="description"
+        content="FitCoach AI - Your personalized AI fitness trainer and sports nutritionist. Generate customized workouts, diet plans, and track your fitness progress.">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Custom Theme CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Marked.js for Markdown Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Chart.js for Visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="app-sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <h5 class="brand-title m-0">FitCoach<span class="text-gradient-emerald">AI</span></h5>
+                    <small class="text-muted" style="font-size: 0.72rem; letter-spacing: 0.05em;">SMART FITNESS
+                        ENGINE</small>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="nav-category">Main Menu</li>
+                <li>
+                    <a href="{{ url_for('index') }}" class="sidebar-link {% if request.path == '/' %}active{% endif %}">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('chat_page') }}"
+                        class="sidebar-link {% if request.path == '/chat' %}active{% endif %}">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>AI Coach Chat</span>
+                    </a>
+                </li>
+
+                <li class="nav-category">AI Generators</li>
+                <li>
+                    <a href="{{ url_for('workout_gen_page') }}"
+                        class="sidebar-link {% if request.path == '/workout-generator' %}active{% endif %}">
+                        <i class="fa-solid fa-dumbbell"></i>
+                        <span>Workout Routine</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('diet_gen_page') }}"
+                        class="sidebar-link {% if request.path == '/diet-generator' %}active{% endif %}">
+                        <i class="fa-solid fa-utensils"></i>
+                        <span>Diet & Nutrition</span>
+                    </a>
+                </li>
+
+                <li class="nav-category">Tools & Library</li>
+                <li>
+                    <a href="{{ url_for('calculators_page') }}"
+                        class="sidebar-link {% if request.path == '/calculators' %}active{% endif %}">
+                        <i class="fa-solid fa-calculator"></i>
+                        <span>Calculators</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('saved_plans_page') }}"
+                        class="sidebar-link {% if request.path == '/saved-plans' %}active{% endif %}">
+                        <i class="fa-solid fa-bookmark"></i>
+                        <span>Saved Plans</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('progress_page') }}"
+                        class="sidebar-link {% if request.path == '/progress' %}active{% endif %}">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Progress Tracker</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div class="user-mini-card" data-bs-toggle="modal" data-bs-target="#profileModal">
+                    <div class="user-avatar">
+                        {{ profile.name[0] if profile else 'A' }}
+                    </div>
+                    <div class="flex-grow-1 text-truncate">
+                        <div class="fw-bold text-white text-truncate" style="font-size: 0.9rem;">{{ profile.name if
+                            profile else 'Athlete' }}</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.75rem;">{{
+                            profile.fitness_goal.replace('_', ' ').title() if profile else 'Fitness Goal' }}</div>
+                    </div>
+                    <i class="fa-solid fa-gear text-muted"></i>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="app-main">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="mobile-nav-toggle d-lg-none" id="sidebar-toggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                        <p class="page-subtitle mb-0">{% block page_subtitle %}Your personalized AI fitness hub{%
+                            endblock %}</p>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-fit-outline" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span class="d-none d-md-inline">AI Settings</span>
+                    </button>
+                    <a href="{{ url_for('chat_page') }}" class="btn btn-fit-primary">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Ask AI Coach</span>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Page Body Content -->
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content dark-modal">
+                <div class="modal-header dark-modal-header">
+                    <h5 class="modal-title" id="profileModalLabel"><i
+                            class="fa-solid fa-user-gear me-2 text-gradient-emerald"></i>Edit User Profile</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form id="profile-form">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="fit-label">Name / Nickname</label>
+                            <input type="text" id="prof-name" class="fit-input"
+                                value="{{ profile.name if profile else 'Athlete' }}" required>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="fit-label">Age</label>
+                                <input type="number" id="prof-age" class="fit-input"
+                                    value="{{ profile.age if profile else 25 }}" min="10" max="100" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="fit-label">Gender</label>
+                                <select id="prof-gender" class="fit-select">
+                                    <option value="male" {% if profile and profile.gender=='male' %}selected{% endif %}>
+                                        Male</option>
+                                    <option value="female" {% if profile and profile.gender=='female' %}selected{% endif
+                                        %}>Female</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="fit-label">Height (cm)</label>
+                                <input type="number" step="0.1" id="prof-height" class="fit-input"
+                                    value="{{ profile.height if profile else 175 }}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="fit-label">Weight (kg)</label>
+                                <input type="number" step="0.1" id="prof-weight" class="fit-input"
+                                    value="{{ profile.weight if profile else 70 }}" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fit-label">Activity Level</label>
+                            <select id="prof-activity" class="fit-select">
+                                <option value="sedentary" {% if profile and profile.activity_level=='sedentary'
+                                    %}selected{% endif %}>Sedentary (Little or no exercise)</option>
+                                <option value="light" {% if profile and profile.activity_level=='light' %}selected{%
+                                    endif %}>Lightly Active (Exercise 1-3 days/week)</option>
+                                <option value="moderate" {% if profile and profile.activity_level=='moderate'
+                                    %}selected{% endif %}>Moderately Active (Exercise 3-5 days/week)</option>
+                                <option value="active" {% if profile and profile.activity_level=='active' %}selected{%
+                                    endif %}>Very Active (Exercise 6-7 days/week)</option>
+                                <option value="very_active" {% if profile and profile.activity_level=='very_active'
+                                    %}selected{% endif %}>Extremely Active (Athletic/Hard Labor)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fit-label">Fitness Goal</label>
+                            <select id="prof-goal" class="fit-select">
+                                <option value="muscle_gain" {% if profile and profile.fitness_goal=='muscle_gain'
+                                    %}selected{% endif %}>Build Muscle (Hypertrophy)</option>
+                                <option value="fat_loss" {% if profile and profile.fitness_goal=='fat_loss' %}selected{%
+                                    endif %}>Lose Fat (Cutting)</option>
+                                <option value="maintenance" {% if profile and profile.fitness_goal=='maintenance'
+                                    %}selected{% endif %}>Maintain Weight & Recomp</option>
+                                <option value="strength" {% if profile and profile.fitness_goal=='strength' %}selected{%
+                                    endif %}>Maximize Strength (Powerlifting)</option>
+                                <option value="endurance" {% if profile and profile.fitness_goal=='endurance'
+                                    %}selected{% endif %}>Cardio & Endurance</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fit-label">Dietary Preference</label>
+                            <select id="prof-diet" class="fit-select">
+                                <option value="standard" {% if profile and profile.dietary_preference=='standard'
+                                    %}selected{% endif %}>Standard (Omnivore)</option>
+                                <option value="high_protein" {% if profile and
+                                    profile.dietary_preference=='high_protein' %}selected{% endif %}>High Protein
+                                </option>
+                                <option value="vegetarian" {% if profile and profile.dietary_preference=='vegetarian'
+                                    %}selected{% endif %}>Vegetarian</option>
+                                <option value="vegan" {% if profile and profile.dietary_preference=='vegan' %}selected{%
+                                    endif %}>Vegan (Plant-Based)</option>
+                                <option value="keto" {% if profile and profile.dietary_preference=='keto' %}selected{%
+                                    endif %}>Keto (Low Carb High Fat)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer dark-modal-footer">
+                        <button type="button" class="btn btn-fit-outline" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-fit-primary">Save Profile</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content dark-modal">
+                <div class="modal-header dark-modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel"><i
+                            class="fa-solid fa-key me-2 text-gradient-emerald"></i>AI Engine Configuration</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form id="settings-form">
+                    <div class="modal-body">
+                        <div class="alert alert-dark border border-secondary border-opacity-50"
+                            style="background: rgba(255,255,255,0.06); color: #f1f5f9; font-size: 0.9rem; line-height: 1.6;">
+                            <i class="fa-solid fa-circle-info text-info me-1"></i>
+                            <strong class="text-white">Dual-Mode Engine:</strong> FitCoach AI functions offline with a
+                            built-in expert fitness knowledge base. Adding your <strong
+                                class="text-gradient-emerald">Google Gemini API Key</strong> enables unrestricted
+                            dynamic natural language generation.
+                        </div>
+                        <div class="mb-3">
+                            <label class="fit-label">Google Gemini API Key (Optional)</label>
+                            <input type="password" id="gemini-api-key" class="fit-input" placeholder="AIzaSy...">
+                            <small class="text-white-50">You can get a free key from <a
+                                    href="https://aistudio.google.com/" target="_blank"
+                                    class="text-gradient-emerald fw-semibold">Google AI Studio</a>.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer dark-modal-footer">
+                        <button type="button" class="btn btn-fit-outline" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-fit-primary">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11000;">
+        <div id="appToast" class="toast align-items-center text-white bg-dark border-0" role="alert"
+            aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center gap-2" id="toastMessage">
+                    <i class="fa-solid fa-circle-check text-success"></i> Action completed!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Global App Helpers -->
+    <script>
+        // Global Toast Trigger
+        window.showToast = function (message, type = 'success') {
+            const toastEl = document.getElementById('appToast');
+            const msgEl = document.getElementById('toastMessage');
+            if (!toastEl || !msgEl) return;
+
+            let icon = '<i class="fa-solid fa-circle-check text-success"></i>';
+            if (type === 'info') icon = '<i class="fa-solid fa-circle-info text-info"></i>';
+            if (type === 'warning') icon = '<i class="fa-solid fa-triangle-exclamation text-warning"></i>';
+            if (type === 'error') icon = '<i class="fa-solid fa-circle-xmark text-danger"></i>';
+
+            msgEl.innerHTML = `${icon} <span>${message}</span>`;
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+        };
+
+        // Mobile Sidebar Toggle
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('app-sidebar');
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+            });
+        }
+
+        // Profile Form Submit
+        const profForm = document.getElementById('profile-form');
+        if (profForm) {
+            profForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const payload = {
+                    name: document.getElementById('prof-name').value,
+                    age: document.getElementById('prof-age').value,
+                    gender: document.getElementById('prof-gender').value,
+                    height: document.getElementById('prof-height').value,
+                    weight: document.getElementById('prof-weight').value,
+                    activity_level: document.getElementById('prof-activity').value,
+                    fitness_goal: document.getElementById('prof-goal').value,
+                    dietary_preference: document.getElementById('prof-diet').value
+                };
+
+                try {
+                    const res = await fetch('/api/profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast('Profile updated successfully!', 'success');
+                        setTimeout(() => window.location.reload(), 600);
+                    }
+                } catch (err) {
+                    console.error('Update profile error:', err);
+                }
+            });
+        }
+
+        // Settings Form Submit
+        const settingsForm = document.getElementById('settings-form');
+        if (settingsForm) {
+            settingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const apiKey = document.getElementById('gemini-api-key').value;
+                try {
+                    const res = await fetch('/api/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ gemini_api_key: apiKey })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast('AI Settings updated!', 'success');
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
+                        if (modal) modal.hide();
+                    }
+                } catch (err) {
+                    console.error('Settings save error:', err);
+                }
+            });
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

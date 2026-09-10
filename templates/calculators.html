@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Fitness Calculators - FitCoach AI{% endblock %}
+{% block page_title %}Scientific Fitness Calculators{% endblock %}
+{% block page_subtitle %}Evidence-based formulas for energy expenditure, strength thresholds, and hydration{% endblock %}
+
+{% block content %}
+<!-- Calculator Selection Tabs -->
+<ul class="nav nav-pills mb-4 gap-2" id="calcTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active btn-fit-outline" id="tdee-tab" data-bs-toggle="pill" data-bs-target="#tdee-pane" type="button" role="tab">
+            <i class="fa-solid fa-fire me-2 text-gradient-emerald"></i>TDEE & Macros
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link btn-fit-outline" id="orm-tab" data-bs-toggle="pill" data-bs-target="#orm-pane" type="button" role="tab">
+            <i class="fa-solid fa-dumbbell me-2 text-gradient-fire"></i>1-Rep Max (1RM)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link btn-fit-outline" id="water-tab" data-bs-toggle="pill" data-bs-target="#water-pane" type="button" role="tab">
+            <i class="fa-solid fa-droplet me-2 text-info"></i>Hydration Target
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link btn-fit-outline" id="hr-tab" data-bs-toggle="pill" data-bs-target="#hr-pane" type="button" role="tab">
+            <i class="fa-solid fa-heart-pulse me-2 text-danger"></i>Heart Rate Zones
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="calcTabContent">
+    <!-- TAB 1: TDEE & Macros -->
+    <div class="tab-pane fade show active" id="tdee-pane" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-12 col-lg-5">
+                <div class="glass-panel p-4">
+                    <h5 class="mb-3 text-white"><i class="fa-solid fa-calculator me-2 text-gradient-emerald"></i>Calculate TDEE & Macros</h5>
+                    <form id="tdee-calc-form">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="fit-label">Weight (kg)</label>
+                                <input type="number" step="0.1" id="tdee-weight" class="fit-input" value="{{ profile.weight if profile else 70 }}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="fit-label">Height (cm)</label>
+                                <input type="number" step="0.1" id="tdee-height" class="fit-input" value="{{ profile.height if profile else 175 }}" required>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="fit-label">Age</label>
+                                <input type="number" id="tdee-age" class="fit-input" value="{{ profile.age if profile else 25 }}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="fit-label">Gender</label>
+                                <select id="tdee-gender" class="fit-select">
+                                    <option value="male" {% if profile and profile.gender == 'male' %}selected{% endif %}>Male</option>
+                                    <option value="female" {% if profile and profile.gender == 'female' %}selected{% endif %}>Female</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fit-label">Activity Multiplier</label>
+                            <select id="tdee-activity" class="fit-select">
+                                <option value="sedentary">Sedentary (desk job, 1.2x)</option>
+                                <option value="light">Lightly Active (1-3 days/wk, 1.375x)</option>
+                                <option value="moderate" selected>Moderately Active (3-5 days/wk, 1.55x)</option>
+                                <option value="active">Very Active (6-7 days/wk, 1.725x)</option>
+                                <option value="very_active">Extremely Active (athletes/labor, 1.9x)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fit-label">Target Fitness Goal</label>
+                            <select id="tdee-goal" class="fit-select">
+                                <option value="fat_loss">Fat Loss (-500 kcal)</option>
+                                <option value="extreme_fat_loss">Aggressive Cut (-750 kcal)</option>
+                                <option value="maintenance">Weight Maintenance (0 kcal)</option>
+                                <option value="muscle_gain" selected>Lean Muscle Bulk (+300 kcal)</option>
+                                <option value="aggressive_gain">Heavy Bulk (+500 kcal)</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="fit-label">Dietary Distribution Style</label>
+                            <select id="tdee-diet" class="fit-select">
+                                <option value="high_protein" selected>High Protein (35% P / 45% C / 20% F)</option>
+                                <option value="standard">Standard Balanced (25% P / 45% C / 30% F)</option>
+                                <option value="low_carb">Low Carb (35% P / 20% C / 45% F)</option>
+                                <option value="keto">Ketogenic (25% P / 5% C / 70% F)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-fit-primary w-100">
+                            <i class="fa-solid fa-calculator me-1"></i> Calculate Energy & Macros
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TDEE Results & Pie Chart -->
+            <div class="col-12 col-lg-7">
+                <div id="tdee-results-card" class="glass-panel p-4">
+                    <h5 class="mb-4 text-white"><i class="fa-solid fa-chart-pie me-2 text-gradient-emerald"></i>Macronutrient Breakdown</h5>
+                    
+                    <div class="row g-3 mb-4 text-center">
+                        <div class="col-4">
+                            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Basal Metabolic Rate</small>
+                                <h4 class="mb-0 text-white" id="res-bmr">--</h4>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Maintenance TDEE</small>
+                                <h4 class="mb-0 text-white" id="res-tdee">--</h4>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25" style="border-color: rgba(0,245,160,0.4) !important;">
+                                <small class="text-muted d-block">Target Calories</small>
+                                <h4 class="mb-0 text-gradient-emerald" id="res-target-cals">--</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Macro Gram Badges -->
+                    <div class="row g-3 mb-4 text-center">
+                        <div class="col-4">
+                            <div class="p-2 rounded" style="background: rgba(0, 245, 160, 0.1); border: 1px solid rgba(0, 245, 160, 0.3);">
+                                <small class="fw-bold" style="color: #00f5a0;">Protein</small>
+                                <h5 class="mb-0 text-white" id="res-protein-g">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded" style="background: rgba(0, 217, 245, 0.1); border: 1px solid rgba(0, 217, 245, 0.3);">
+                                <small class="fw-bold" style="color: #00d9f5;">Carbs</small>
+                                <h5 class="mb-0 text-white" id="res-carbs-g">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded" style="background: rgba(255, 107, 53, 0.1); border: 1px solid rgba(255, 107, 53, 0.3);">
+                                <small class="fw-bold" style="color: #ff6b35;">Fats</small>
+                                <h5 class="mb-0 text-white" id="res-fats-g">--</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Canvas -->
+                    <div style="max-height: 250px; display: flex; justify-content: center;">
+                        <canvas id="macroPieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: One-Rep Max (1RM) -->
+    <div class="tab-pane fade" id="orm-pane" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-12 col-lg-5">
+                <div class="glass-panel p-4">
+                    <h5 class="mb-3 text-white"><i class="fa-solid fa-dumbbell me-2 text-gradient-fire"></i>1-Rep Max (1RM) Estimator</h5>
+                    <p class="text-muted small">Calculates your maximum single-rep strength using the Epley and Brzycki powerlifting formulas.</p>
+                    <form id="orm-calc-form">
+                        <div class="mb-3">
+                            <label class="fit-label">Weight Lifted (kg)</label>
+                            <input type="number" step="0.5" id="orm-weight" class="fit-input" value="80" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="fit-label">Reps Performed (1 - 30)</label>
+                            <input type="number" id="orm-reps" class="fit-input" value="6" min="1" max="30" required>
+                        </div>
+                        <button type="submit" class="btn btn-fit-fire w-100">
+                            <i class="fa-solid fa-calculator me-1"></i> Estimate 1RM
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-7">
+                <div id="orm-results-card" class="glass-panel p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0 text-white">Estimated 1-Rep Max</h5>
+                        <h3 class="mb-0 text-gradient-fire" id="res-1rm">-- kg</h3>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-dark table-borderless align-middle mb-0">
+                            <thead>
+                                <tr class="text-muted" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                    <th>Intensity</th>
+                                    <th>Rep Target</th>
+                                    <th>Working Weight</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orm-table-body">
+                                <tr><td colspan="3" class="text-muted text-center py-4">Enter your weight & reps on the left and click calculate.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: Daily Hydration -->
+    <div class="tab-pane fade" id="water-pane" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-12 col-lg-5">
+                <div class="glass-panel p-4">
+                    <h5 class="mb-3 text-white"><i class="fa-solid fa-droplet me-2 text-info"></i>Daily Water Intake</h5>
+                    <form id="water-calc-form">
+                        <div class="mb-3">
+                            <label class="fit-label">Current Weight (kg)</label>
+                            <input type="number" step="0.1" id="water-weight" class="fit-input" value="{{ profile.weight if profile else 70 }}" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="fit-label">Daily Physical Activity</label>
+                            <select id="water-activity" class="fit-select">
+                                <option value="sedentary">Sedentary (No exercise)</option>
+                                <option value="moderate" selected>Moderate (30-60 mins training)</option>
+                                <option value="active">High Intensity / Hot Climate</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-fit-outline w-100">
+                            <i class="fa-solid fa-droplet me-1 text-info"></i> Calculate Hydration
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-7">
+                <div id="water-results-card" class="glass-panel p-4">
+                    <h5 class="mb-4 text-white">Recommended Daily Fluid Target</h5>
+                    <div class="row g-3 text-center mb-4">
+                        <div class="col-4">
+                            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Liters / Day</small>
+                                <h3 class="mb-0 text-info" id="res-water-liters">--</h3>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Standard Glasses (250ml)</small>
+                                <h3 class="mb-0 text-info" id="res-water-glasses">--</h3>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Fluid Ounces</small>
+                                <h3 class="mb-0 text-info" id="res-water-oz">--</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-dark border border-secondary border-opacity-25" style="background: rgba(0, 217, 245, 0.05); color: #cbd5e1; font-size: 0.85rem;">
+                        <i class="fa-solid fa-circle-info text-info me-1"></i>
+                        <strong>FitCoach Pro Tip:</strong> Drink 500ml upon waking to jumpstart cellular hydration and metabolism. For intense sessions lasting >60 min, add electrolytes (sodium, potassium, magnesium).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: Heart Rate Zones -->
+    <div class="tab-pane fade" id="hr-pane" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-12 col-lg-5">
+                <div class="glass-panel p-4">
+                    <h5 class="mb-3 text-white"><i class="fa-solid fa-heart-pulse me-2 text-danger"></i>Target Heart Rate Zones</h5>
+                    <form id="hr-calc-form">
+                        <div class="mb-4">
+                            <label class="fit-label">Your Age</label>
+                            <input type="number" id="hr-age" class="fit-input" value="{{ profile.age if profile else 25 }}" min="10" max="100" required>
+                        </div>
+                        <button type="submit" class="btn btn-fit-outline w-100">
+                            <i class="fa-solid fa-heart-pulse me-1 text-danger"></i> Calculate Zones
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-7">
+                <div id="hr-results-card" class="glass-panel p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 text-white">Max Heart Rate</h5>
+                        <h3 class="mb-0 text-danger" id="res-max-hr">-- BPM</h3>
+                    </div>
+                    <div id="hr-zones-list">
+                        <p class="text-muted text-center py-4">Click calculate on the left to view your personalized Zone 1 to Zone 5 training intensities.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/calculators.js') }}"></script>
+<script>
+    // Automatically trigger initial TDEE calculation on page load
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("tdee-calc-form");
+        if (form) form.dispatchEvent(new Event('submit'));
+    });
+</script>
+{% endblock %}
