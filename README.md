@@ -55,7 +55,8 @@
 
 ### 1. Clone or Open Workspace
 ```bash
-cd "d:\Projects\5th Sem\Ai Fitness  Chatbot"
+
+(https://github.com/adityabshiwarkar9960/Ai_Fitness_Coach_chatbot.git)
 ```
 
 ### 2. Install Dependencies
